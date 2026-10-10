@@ -15,7 +15,7 @@ Trình duyệt -> Vercel (frontend)
                   PostgreSQL + /app/storage
 ```
 
-Các tệp triển khai trong repo: `Dockerfile.render`, `.dockerignore`, `scripts/render-start.sh`. Script khởi động chạy Prisma migration, sau đó chạy FastAPI ở loopback và NestJS ở cổng `PORT` do Render cấp. `GET /api/health` kiểm tra kết nối DB. Chỉ NestJS được Render đưa ra Internet.
+Các tệp triển khai trong repo: `Dockerfile`, `.dockerignore`, `scripts/render-start.sh`. Script khởi động chạy Prisma migration, sau đó chạy FastAPI ở loopback và NestJS ở cổng `PORT` do Render cấp. `GET /api/health` kiểm tra kết nối DB. Chỉ NestJS được Render đưa ra Internet.
 
 ## 1. Chọn cơ sở dữ liệu và nơi lưu tài liệu
 
@@ -28,10 +28,12 @@ Các tệp triển khai trong repo: `Dockerfile.render`, `.dockerignore`, `scrip
 ## 2. Tạo Web Service trên Render
 
 1. Kết nối GitHub, chọn repo `hnaduc2005/HS_Tool` → **New Web Service**.
-2. Chọn **Docker**; để Root Directory là gốc repo; Dockerfile Path: `./Dockerfile.render`; Docker Build Context: `.`.
+2. Chọn **Docker**; để trống **Root Directory** (gốc repo); Dockerfile Path: `./Dockerfile` (hoặc để mặc định); Docker Build Context: `.`. Để trống Docker Command/Start Command để dùng lệnh `CMD` trong Dockerfile.
 3. Chọn region cùng Render Postgres nếu dùng database của Render. Chọn plan có đủ bộ nhớ cho NestJS, FastAPI và xử lý PDF/embedding. Với nhu cầu giữ tệp, chọn plan có thể gắn Persistent Disk và mount `/app/storage`.
 4. Trong Environment, cấu hình các biến dưới đây. Render tự cấp `PORT`; không đặt `PORT=3001`. `AI_SERVICE_URL` đã được script ấn định là `http://127.0.0.1:8000`.
 5. Đặt Health Check Path là `/api/health`, bật auto deploy theo nhánh `main`, rồi tạo service. URL nhận được có dạng `https://<ten-service>.onrender.com`; API ở `/api`.
+
+Nếu log báo `failed to read dockerfile: open Dockerfile: no such file or directory`, kiểm tra **Root Directory** của Render đang để trống và **Dockerfile Path** là `./Dockerfile`. Tệp này nằm ở gốc repo. Giá trị `frontend` chỉ dùng làm Root Directory trên Vercel. Sau khi sửa cấu hình, redeploy commit mới nhất từ `main`.
 
 | Biến Render | Giá trị cần nhập |
 | --- | --- |
