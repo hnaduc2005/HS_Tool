@@ -30,7 +30,7 @@ Các tệp triển khai trong repo: `Dockerfile`, `.dockerignore`, `scripts/rend
 1. Kết nối GitHub, chọn repo `hnaduc2005/HS_Tool` → **New Web Service**.
 2. Chọn **Docker**; để trống **Root Directory** (gốc repo); Dockerfile Path: `./Dockerfile` (hoặc để mặc định); Docker Build Context: `.`. Để trống Docker Command/Start Command để dùng lệnh `CMD` trong Dockerfile.
 3. Chọn region cùng Render Postgres nếu dùng database của Render. Chọn plan có đủ bộ nhớ cho NestJS, FastAPI và xử lý PDF/embedding. Với nhu cầu giữ tệp, chọn plan có thể gắn Persistent Disk và mount `/app/storage`.
-4. Trong Environment, cấu hình các biến dưới đây. Render tự cấp `PORT`; không đặt `PORT=3001`. `AI_SERVICE_URL` đã được script ấn định là `http://127.0.0.1:8000`.
+4. Trong Environment, cấu hình các biến dưới đây. Đặt `PORT=10000` để Render và NestJS thống nhất cổng công khai ngay từ đầu; không đặt `PORT=3001`. `AI_SERVICE_URL` đã được script ấn định là `http://127.0.0.1:8000`.
 5. Đặt Health Check Path là `/api/health`, bật auto deploy theo nhánh `main`, rồi tạo service. URL nhận được có dạng `https://<ten-service>.onrender.com`; API ở `/api`.
 
 Nếu log báo `failed to read dockerfile: open Dockerfile: no such file or directory`, kiểm tra **Root Directory** của Render đang để trống và **Dockerfile Path** là `./Dockerfile`. Tệp này nằm ở gốc repo. Giá trị `frontend` chỉ dùng làm Root Directory trên Vercel. Sau khi sửa cấu hình, redeploy commit mới nhất từ `main`.
@@ -38,6 +38,7 @@ Nếu log báo `failed to read dockerfile: open Dockerfile: no such file or dire
 | Biến Render | Giá trị cần nhập |
 | --- | --- |
 | `DATABASE_URL` | Internal URL của Render Postgres cùng region, hoặc URL PostgreSQL/pgvector hiện có. |
+| `PORT` | `10000` cho Web Service trên Render. |
 | `AI_PROVIDER` | Nhà cung cấp chính đang dùng, ví dụ `gemini`. |
 | `AI_API_KEY`, `AI_BASE_URL`, `AI_CHAT_MODEL` | Sao chép **giá trị hiện có của máy bạn** vào Render Environment; không gửi qua chat hoặc commit. |
 | `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS` | Model embedding đã dùng để tạo chỉ mục; kích thước phải là `1536`. |
@@ -52,10 +53,12 @@ Nếu chưa biết URL Vercel lúc tạo Render, đặt tạm `FRONTEND_ORIGIN` 
 
 Sau khi deploy, mở `https://<ten-service>.onrender.com/api/health`. Kết quả mong đợi là `{"status":"ok"}`. Nếu deploy thất bại, xem Render logs: lỗi `DATABASE_URL`/migration, thiếu extension hoặc sai khóa AI là các trường hợp cần phân biệt. Health check chỉ kiểm tra backend và DB; thử phân loại mới xác nhận được nhà cung cấp AI và kho tài liệu. [Render Docker](https://render.com/docs/docker), [Web Services](https://render.com/docs/web-services), [Health Checks](https://render.com/docs/health-checks).
 
+Nếu Deploys báo `Timed Out` sau `New primary port detected: 10000`, hãy kiểm tra **bản deploy mới nhất** thay vì chỉ mở URL công khai: Render có thể vẫn phục vụ bản cũ. Trong Settings, đặt **Health Check Path** là `/api/health`; đường dẫn rỗng chỉ kiểm tra TCP, không xác nhận API và DB đã sẵn sàng. Trong Environment đặt `PORT=10000`, sau đó deploy lại. Log khởi động mới in commit và cổng; nếu một trong hai tiến trình thoát, script cũng ghi tiến trình và mã lỗi. Nếu vẫn hết thời gian, đối chiếu commit trong log với commit đang deploy và xem Events/Logs của đúng lần deploy. [Render Health Checks](https://render.com/docs/health-checks), [Port binding](https://render.com/docs/web-services#port-binding).
+
 ## 3. Tạo frontend trên Vercel
 
 1. Import cùng repo GitHub vào Vercel, chọn **Framework Preset: Next.js** và **Root Directory: `frontend`**. Chọn Node.js 22 trong Project Settings.
-2. Thêm biến môi trường **Production** `NEXT_PUBLIC_API_URL=https://<ten-service>.onrender.com/api` (không thêm dấu `/` cuối). Đây là URL công khai, được nhúng vào bundle trình duyệt lúc build. Không đặt API key, token nội bộ hoặc `DATABASE_URL` trên Vercel.
+2. Thêm biến môi trường **Production** `NEXT_PUBLIC_API_URL=https://hs-tool.onrender.com/api` (không thêm dấu `/` cuối). Đây là URL công khai, được nhúng vào bundle trình duyệt lúc build. Không đặt API key, token nội bộ hoặc `DATABASE_URL` trên Vercel.
 3. Deploy. Ghi lại domain Production `https://<ten-project>.vercel.app` hoặc domain riêng.
 4. Quay lại Render, đặt `FRONTEND_ORIGIN` bằng origin chính xác vừa nhận rồi Save/Deploy. Tải lại trang Vercel và thử tra cứu.
 
