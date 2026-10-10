@@ -19,12 +19,14 @@ COPY backend ./backend
 COPY ai-service/app ./ai-service/app
 COPY scripts/render-start.sh ./scripts/render-start.sh
 
-RUN pnpm --dir backend prisma:generate \
-    && pnpm --dir backend build \
-    && chmod +x scripts/render-start.sh
+RUN cd backend \
+    && node node_modules/prisma/build/index.js generate --schema prisma/schema.prisma \
+    && node node_modules/@nestjs/cli/bin/nest.js build \
+    && chmod +x ../scripts/render-start.sh
 
 ENV PATH="/opt/hs-ai-venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
     NODE_ENV=production \
     AI_SERVICE_URL=http://127.0.0.1:8000 \
     DOCUMENT_STORAGE_PATH=/app/storage

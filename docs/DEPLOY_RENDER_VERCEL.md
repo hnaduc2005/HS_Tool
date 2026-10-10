@@ -15,7 +15,7 @@ Trình duyệt -> Vercel (frontend)
                   PostgreSQL + /app/storage
 ```
 
-Các tệp triển khai trong repo: `Dockerfile`, `.dockerignore`, `scripts/render-start.sh`. Script khởi động chạy Prisma migration, sau đó chạy FastAPI ở loopback và NestJS ở cổng `PORT` do Render cấp. `GET /api/health` kiểm tra kết nối DB. Chỉ NestJS được Render đưa ra Internet.
+Các tệp triển khai trong repo: `Dockerfile`, `.dockerignore`, `scripts/render-start.sh`. Script khởi động gọi trực tiếp Prisma CLI đã có trong image để chạy migration, với timeout mặc định 180 giây, sau đó chạy FastAPI ở loopback và NestJS ở cổng `PORT` do Render cấp. `GET /api/health` kiểm tra kết nối DB. Chỉ NestJS được Render đưa ra Internet.
 
 ## 1. Chọn cơ sở dữ liệu và nơi lưu tài liệu
 
@@ -39,6 +39,7 @@ Nếu log báo `failed to read dockerfile: open Dockerfile: no such file or dire
 | --- | --- |
 | `DATABASE_URL` | Internal URL của Render Postgres cùng region, hoặc URL PostgreSQL/pgvector hiện có. |
 | `PORT` | `10000` cho Web Service trên Render. |
+| `MIGRATION_TIMEOUT_SECONDS` | Tùy chọn, mặc định `180`, nhận `1`–`900`; tăng khi có migration lớn đã kiểm tra. |
 | `AI_PROVIDER` | Nhà cung cấp chính đang dùng, ví dụ `gemini`. |
 | `AI_API_KEY`, `AI_BASE_URL`, `AI_CHAT_MODEL` | Sao chép **giá trị hiện có của máy bạn** vào Render Environment; không gửi qua chat hoặc commit. |
 | `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS` | Model embedding đã dùng để tạo chỉ mục; kích thước phải là `1536`. |
@@ -54,6 +55,26 @@ Nếu chưa biết URL Vercel lúc tạo Render, đặt tạm `FRONTEND_ORIGIN` 
 Sau khi deploy, mở `https://<ten-service>.onrender.com/api/health`. Kết quả mong đợi là `{"status":"ok"}`. Nếu deploy thất bại, xem Render logs: lỗi `DATABASE_URL`/migration, thiếu extension hoặc sai khóa AI là các trường hợp cần phân biệt. Health check chỉ kiểm tra backend và DB; thử phân loại mới xác nhận được nhà cung cấp AI và kho tài liệu. [Render Docker](https://render.com/docs/docker), [Web Services](https://render.com/docs/web-services), [Health Checks](https://render.com/docs/health-checks).
 
 Nếu Deploys báo `Timed Out` sau `New primary port detected: 10000`, hãy kiểm tra **bản deploy mới nhất** thay vì chỉ mở URL công khai: Render có thể vẫn phục vụ bản cũ. Trong Settings, đặt **Health Check Path** là `/api/health`; đường dẫn rỗng chỉ kiểm tra TCP, không xác nhận API và DB đã sẵn sàng. Trong Environment đặt `PORT=10000`, sau đó deploy lại. Log khởi động mới in commit và cổng; nếu một trong hai tiến trình thoát, script cũng ghi tiến trình và mã lỗi. Nếu vẫn hết thời gian, đối chiếu commit trong log với commit đang deploy và xem Events/Logs của đúng lần deploy. [Render Health Checks](https://render.com/docs/health-checks), [Port binding](https://render.com/docs/web-services#port-binding).
+
+### Treo trước khi mở cổng: `Scope: all ... workspace projects`
+
+Nếu log dừng sau `Starting commit ...`, `Scope: all ... workspace projects` và `Lockfile passes supply-chain policies`, nhưng chưa có log Prisma/NestJS/FastAPI, lệnh `pnpm --dir backend db:deploy` của bản cũ đã đi vào bước install/kiểm tra dependency. pnpm 11 mặc định `verifyDepsBeforeRun: install`, có thể tự install trước khi chạy script. Bản sửa gọi `node backend/node_modules/prisma/build/index.js migrate deploy --schema backend/prisma/schema.prisma` trực tiếp; dependency chỉ được install trong Docker build. Các bước generate/build cũng gọi CLI đã cài trực tiếp. [pnpm 11](https://pnpm.io/blog/releases/11.0), [verifyDepsBeforeRun](https://pnpm.io/settings/build#verifydepsbeforerun).
+
+Sau khi repo có bản sửa, trong Render giữ Docker Command trống (hoặc `bash scripts/render-start.sh`) rồi **Manual Deploy → Deploy latest commit**. Log mong đợi theo thứ tự:
+
+```text
+Starting commit <commit mới> on public port 10000
+Running Prisma migrations (timeout: 180s)
+... Prisma migration output ...
+Prisma migrations completed
+Starting FastAPI on 127.0.0.1:8000
+Starting NestJS on 0.0.0.0:10000
+... API listening on 0.0.0.0:10000; health check: /api/health
+```
+
+Nếu hiện `Prisma migrations timed out` hoặc `Prisma migrations failed`, xem lỗi DB/migration ngay trước đó; kiểm tra kết nối, quyền extension và URL database. Không bỏ qua migration hoặc mở một cổng giả để làm deploy thành công. Thay Health Check Path sẽ không giải quyết được việc chưa có tiến trình lắng nghe cổng. Không cần xóa build cache chỉ vì thấy `CACHED`: khi Dockerfile hoặc script thay đổi, Docker sẽ dựng lại các layer liên quan.
+
+Kiểm thử supervisor: chạy `node --test scripts/render-start.test.mjs` trên máy có Bash và GNU `timeout`. Trên Windows, đặt `BASH_TEST_BINARY` trỏ đến Git Bash trước khi chạy. Bộ kiểm thử dùng tiến trình giả lập để kiểm tra migration, timeout, lỗi dịch vụ và shutdown; không gọi DB hay nhà cung cấp AI.
 
 ## 3. Tạo frontend trên Vercel
 
