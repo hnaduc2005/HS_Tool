@@ -1,0 +1,17 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+CREATE TYPE "DocumentStatus" AS ENUM ('PROCESSING', 'READY', 'FAILED');
+CREATE TABLE users (id uuid PRIMARY KEY, email text NOT NULL UNIQUE, password_hash text NOT NULL, role "Role" NOT NULL DEFAULT 'USER', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE hs_codes (id uuid PRIMARY KEY, code text NOT NULL UNIQUE, description text NOT NULL, level integer NOT NULL, parent_code text, effective_from date, effective_to date, is_active boolean NOT NULL DEFAULT true, provenance text);
+CREATE INDEX hs_codes_description_trgm ON hs_codes USING gin (description gin_trgm_ops);
+CREATE TABLE documents (id uuid PRIMARY KEY, title text NOT NULL, document_type text NOT NULL, source text NOT NULL, version text, effective_date date, file_url text NOT NULL, status "DocumentStatus" NOT NULL DEFAULT 'PROCESSING', error text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE document_chunks (id uuid PRIMARY KEY, document_id uuid NOT NULL REFERENCES documents(id) ON DELETE CASCADE, content text NOT NULL, page integer, chunk_index integer NOT NULL, embedding vector(1536), metadata jsonb NOT NULL DEFAULT '{}'::jsonb, UNIQUE(document_id, chunk_index));
+CREATE INDEX document_chunks_content_trgm ON document_chunks USING gin (content gin_trgm_ops);
+CREATE INDEX document_chunks_embedding_hnsw ON document_chunks USING hnsw (embedding vector_cosine_ops);
+CREATE TABLE classification_searches (id uuid PRIMARY KEY, user_id uuid REFERENCES users(id) ON DELETE SET NULL, product_description text NOT NULL, normalized_product jsonb NOT NULL, status text NOT NULL, missing_information jsonb NOT NULL DEFAULT '[]'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX classification_searches_user_created ON classification_searches(user_id, created_at);
+CREATE TABLE classification_results (id uuid PRIMARY KEY, search_id uuid NOT NULL REFERENCES classification_searches(id) ON DELETE CASCADE, hs_code text NOT NULL, description text NOT NULL, confidence double precision NOT NULL, reasoning text NOT NULL, rank integer NOT NULL);
+CREATE INDEX classification_results_search_rank ON classification_results(search_id, rank);
+CREATE TABLE classification_sources (id uuid PRIMARY KEY, result_id uuid NOT NULL REFERENCES classification_results(id) ON DELETE CASCADE, document_id uuid NOT NULL REFERENCES documents(id) ON DELETE CASCADE, chunk_id uuid NOT NULL REFERENCES document_chunks(id) ON DELETE CASCADE, page integer, relevance_score double precision NOT NULL);
+CREATE TABLE feedback (id uuid PRIMARY KEY, search_id uuid NOT NULL REFERENCES classification_searches(id) ON DELETE CASCADE, result_id uuid REFERENCES classification_results(id) ON DELETE SET NULL, is_correct boolean NOT NULL, correct_hs_code text, comment text, created_at timestamptz NOT NULL DEFAULT now());

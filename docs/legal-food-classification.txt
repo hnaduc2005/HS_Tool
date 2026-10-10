@@ -1,0 +1,14 @@
+TÓM TẮT CĂN CỨ PHÂN LOẠI CHẾ PHẨM THỰC PHẨM HỖN HỢP
+
+Nguồn đối chiếu: Nghị định 26/2023/NĐ-CP, Phụ lục II, Chú giải 2 Chương 16 và Chú giải 1(a) Chương 19; Danh mục mã trong BIEU THUE XNK 2026.xlsx do người dùng cung cấp. Bản tóm tắt này không thay thế văn bản gốc hoặc kết quả phân loại của cơ quan hải quan.
+Văn bản gốc: https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-26-2023-nd-cp-39522.htm
+
+Chú giải 2 Chương 16: Chế phẩm thực phẩm chứa tổng cộng trên 20% khối lượng là thịt, cá, động vật giáp xác, động vật thân mềm và các thành phần động vật được nêu trong chú giải thì xem xét Chương 16. Khi có từ hai loại thành phần thuộc Chương 16 trở lên, chọn nhóm ứng với loại hoặc các loại chiếm khối lượng lớn hơn trong chế phẩm. Quy tắc này có ngoại lệ cho sản phẩm nhồi thuộc nhóm 19.02 và chế phẩm thuộc các nhóm 21.03, 21.04.
+
+Chú giải 1(a) Chương 19: Chế phẩm thực phẩm có trên 20% khối lượng các thành phần động vật nói trên hoặc hỗn hợp của chúng được loại khỏi Chương 19 và xem xét Chương 16, trừ sản phẩm nhồi thuộc nhóm 19.02. Vì vậy không thể chọn nhóm hàng từ gạo chỉ dựa vào việc gạo chiếm tỷ lệ lớn nhất.
+
+Nhóm 16.05: Động vật giáp xác, động vật thân mềm và động vật thủy sinh không xương sống khác đã chế biến hoặc bảo quản. Tôm thuộc nhánh tôm shrimp/tôm prawn. Mã 1605.21.00 dành cho hàng không đóng bao bì kín khí; 1605.29 là nhánh còn lại. Trong nhánh 1605.29, mã 1605.29.20 là tôm dạng viên, 1605.29.30 là tôm tẩm bột, và 1605.29.90 là loại khác. Cần kiểm tra thực tế kiểu bao bì và dạng sản phẩm trước khi chọn mã tám số.
+
+Nhóm 16.02: Thịt hoặc các bộ phận từ thịt được chế biến hoặc bảo quản khác. Nếu thành phần thịt là loại chiếm khối lượng lớn hơn trong số các thành phần thuộc Chương 16, cần xét nhóm này thay vì 16.05.
+
+Nhóm 19.04 có nhánh 1904.90.10 cho chế phẩm từ gạo, kể cả gạo đã nấu chín sơ. Chỉ xét nhánh này sau khi áp dụng chú giải loại trừ của Chương 19 và xác minh quy trình chế biến thực tế.

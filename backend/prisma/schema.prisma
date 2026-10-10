@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DocumentStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model User {
+  id           String                 @id @default(uuid()) @db.Uuid
+  email        String                 @unique
+  passwordHash String                 @map("password_hash")
+  role         Role                   @default(USER)
+  createdAt    DateTime               @default(now()) @map("created_at")
+  searches     ClassificationSearch[]
+  @@map("users")
+}
+
+model HsCode {
+  id            String    @id @default(uuid()) @db.Uuid
+  code          String    @unique
+  description   String
+  level         Int
+  parentCode    String?   @map("parent_code")
+  effectiveFrom DateTime? @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  isActive      Boolean   @default(true) @map("is_active")
+  provenance    String?
+  @@index([description])
+  @@map("hs_codes")
+}
+
+model Document {
+  id            String         @id @default(uuid()) @db.Uuid
+  title         String
+  documentType  String         @map("document_type")
+  source        String
+  version       String?
+  effectiveDate DateTime?      @map("effective_date") @db.Date
+  fileUrl       String         @map("file_url")
+  status        DocumentStatus @default(PROCESSING)
+  error         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  chunks        DocumentChunk[]
+  citations     ClassificationSource[]
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String
+  searchText String?  @map("search_text")
+  page       Int?
+  chunkIndex Int      @map("chunk_index")
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json     @default("{}")
+  citations  ClassificationSource[]
+  @@unique([documentId, chunkIndex])
+  @@map("document_chunks")
+}
+
+model ClassificationSearch {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  userId             String?                @map("user_id") @db.Uuid
+  user               User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  productDescription String                 @map("product_description")
+  normalizedProduct  Json                   @map("normalized_product")
+  legalAnalysis      Json                   @default("{}") @map("legal_analysis")
+  status             String
+  missingInformation Json                   @default("[]") @map("missing_information")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  results            ClassificationResult[]
+  feedback           Feedback[]
+  @@index([userId, createdAt])
+  @@map("classification_searches")
+}
+
+model ClassificationResult {
+  id          String                 @id @default(uuid()) @db.Uuid
+  searchId    String                 @map("search_id") @db.Uuid
+  search      ClassificationSearch   @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  hsCode      String                 @map("hs_code")
+  description String
+  confidence  Float
+  reasoning   String
+  rank        Int
+  sources     ClassificationSource[]
+  feedback    Feedback[]
+  @@index([searchId, rank])
+  @@map("classification_results")
+}
+
+model ClassificationSource {
+  id             String               @id @default(uuid()) @db.Uuid
+  resultId       String               @map("result_id") @db.Uuid
+  result         ClassificationResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  documentId     String               @map("document_id") @db.Uuid
+  document       Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkId        String               @map("chunk_id") @db.Uuid
+  chunk          DocumentChunk        @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  page           Int?
+  relevanceScore Float                @map("relevance_score")
+  @@map("classification_sources")
+}
+
+model Feedback {
+  id            String                @id @default(uuid()) @db.Uuid
+  searchId      String                @map("search_id") @db.Uuid
+  search        ClassificationSearch  @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  resultId      String?               @map("result_id") @db.Uuid
+  result        ClassificationResult? @relation(fields: [resultId], references: [id], onDelete: SetNull)
+  isCorrect     Boolean               @map("is_correct")
+  correctHsCode String?               @map("correct_hs_code")
+  comment       String?
+  createdAt     DateTime               @default(now()) @map("created_at")
+  @@map("feedback")
+}

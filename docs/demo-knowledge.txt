@@ -1,0 +1,13 @@
+DEMO DATA — TÀI LIỆU MINH HỌA, KHÔNG PHẢI VĂN BẢN PHÁP LÝ.
+Các ví dụ sau chỉ dùng để thử luồng tìm kiếm và trích dẫn. Phải thay bằng danh mục HS và văn bản có nguồn được kiểm chứng trước khi sử dụng thực tế.
+
+Áo phông nam 100% cotton, dệt kim: ứng viên minh họa 61091010. Phân biệt với áo bằng vật liệu dệt khác.
+Giày thể thao có mũ bằng vật liệu dệt, đế ngoài cao su: ứng viên minh họa 64041190. Cần xác định vật liệu mũ và đế.
+Máy lọc nước gia đình: ứng viên minh họa 84212111. Cần xác định cơ chế lọc và mục đích sử dụng.
+Điện thoại thông minh: ứng viên minh họa 85171300. Cần xác định chức năng mạng di động.
+Bàn làm việc bằng gỗ dùng trong văn phòng: ứng viên minh họa 94033000. Cần xác định chất liệu và công dụng.
+Túi xách có mặt ngoài bằng da: ứng viên cần tìm trong nhóm 4202; phải biết kiểu túi và chất liệu mặt ngoài trước khi chọn phân nhóm.
+Cà phê đã rang, chưa khử caffeine: ứng viên cần tìm trong nhóm 0901; cần biết chủng loại và tình trạng khử caffeine.
+Mạch điện tử tích hợp: ứng viên cần tìm trong nhóm 8542; cần biết chức năng cụ thể của linh kiện.
+Máy bơm nước: ứng viên cần tìm trong nhóm 8413; cần biết nguyên lý hoạt động, công suất và ứng dụng.
+Đèn LED dùng để chiếu sáng trong nhà: ứng viên cần tìm trong nhóm 9405; cần biết thiết kế lắp đặt và nguồn sáng.

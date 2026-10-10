@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: hs
+      POSTGRES_PASSWORD: hs_dev_password
+      POSTGRES_DB: hs_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - hs_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hs -d hs_ai"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+volumes:
+  hs_pg_data:

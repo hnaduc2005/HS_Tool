@@ -1,0 +1,12 @@
+{
+  "name": "hs-ai",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev": "powershell -NoProfile -File scripts/start.ps1",
+    "dev:frontend": "pnpm --dir frontend dev",
+    "dev:backend": "pnpm --dir backend start:dev",
+    "build": "pnpm --dir backend build && pnpm --dir frontend build",
+    "test": "pnpm --dir backend test && pnpm --dir frontend test"
+  }
+}
