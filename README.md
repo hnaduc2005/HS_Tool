@@ -16,6 +16,8 @@
 | `docs/` | Cấu hình AI và dữ liệu demo có ghi nhãn |
 | `HS_AI/TL/` | Tài liệu nguồn sẵn có của người dùng |
 
+Hướng dẫn triển khai frontend trên Vercel và backend/AI trên Render: [docs/DEPLOY_RENDER_VERCEL.md](docs/DEPLOY_RENDER_VERCEL.md).
+
 `document_chunks.embedding` là `vector(1536)`. pg_trgm hỗ trợ tìm keyword; truy vấn cosine pgvector hỗ trợ tìm ngữ nghĩa. Python gộp và xếp hạng kết quả, sau đó tính confidence từ ngữ nghĩa, từ khóa, khớp mã và điểm LLM. Kết quả và citation được NestJS kiểm tra lần nữa trước khi lưu.
 
 Mỗi lượt tra cứu lưu `legalAnalysis`: dữ kiện hàng hóa, từng điều khoản có ID đoạn tài liệu, cách áp dụng, nhóm/mã đã xem xét, kết luận có điều kiện và điểm cần xác minh. Giao diện hiển thị phần này cả khi trạng thái là `INSUFFICIENT_EVIDENCE`. Chỉ tài liệu đã lập chỉ mục và còn trong cơ sở dữ liệu mới được dùng làm trích dẫn; tài liệu demo bị loại khỏi truy xuất. Nếu kho tài liệu chưa có căn cứ phù hợp, hệ thống nêu rõ khoảng trống thay vì suy diễn điều khoản.

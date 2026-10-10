@@ -7,7 +7,7 @@ describe('HTTP API', () => {
   let app: any; let base: string;
   beforeAll(async () => {
     process.env.JWT_SECRET = 'a-very-long-test-secret-at-least-32-characters';
-    const db = { hsCode: { findMany: jest.fn().mockResolvedValue([{ code: '61091010', description: 'Áo phông nam' }]) } };
+    const db = { $queryRaw: jest.fn().mockResolvedValue([{ ok: 1 }]), hsCode: { findMany: jest.fn().mockResolvedValue([{ code: '61091010', description: 'Áo phông nam' }]) } };
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Database).useValue(db).compile();
     app = module.createNestApplication();
     app.setGlobalPrefix('api');
@@ -21,6 +21,11 @@ describe('HTTP API', () => {
     const response = await fetch(`${base}/api/hs-codes/search?q=6109`);
     expect(response.status).toBe(200);
     expect((await response.json())[0].code).toBe('61091010');
+  });
+  it('reports database readiness to Render', async () => {
+    const response = await fetch(`${base}/api/health`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: 'ok' });
   });
   it('validates classification input', async () => {
     const response = await fetch(`${base}/api/classification/search`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ description: ' ' }) });

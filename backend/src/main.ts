@@ -13,6 +13,6 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000' });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  await app.listen(Number(process.env.PORT || 3001));
+  await app.listen(Number(process.env.PORT || 3001), '0.0.0.0');
 }
 bootstrap();

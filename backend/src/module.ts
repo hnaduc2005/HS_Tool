@@ -5,9 +5,10 @@ import { HsCodesController, HsCodesService } from './hs-codes/hs-codes';
 import { ClassificationController, ClassificationService } from './classification/classification';
 import { AdminController, AdminService } from './admin/admin';
 import { LocalDocumentStorage } from './documents/storage';
+import { HealthController } from './health';
 
 @Module({
-  controllers: [AuthController, HsCodesController, ClassificationController, AdminController],
+  controllers: [HealthController, AuthController, HsCodesController, ClassificationController, AdminController],
   providers: [Database, LocalDocumentStorage, AuthService, UserGuard, AdminGuard, HsCodesService, ClassificationService, AdminService],
 })
 export class AppModule {}

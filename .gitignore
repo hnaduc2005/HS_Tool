@@ -17,3 +17,4 @@ HS_AI/TL/
 *.tsbuildinfo
 *.pyc
 .DS_Store
+~$*.docx
