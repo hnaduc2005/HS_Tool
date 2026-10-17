@@ -11,7 +11,7 @@ describe('multi-product preparation', () => {
     const text = '1. COMPUTERIZED CROCHET MACHINE\nMODEL B16 20\nPOWER 1.5KW\n\n2. INVERTER MODEL JK200A';
     const expected = { items: [{ description: 'COMPUTERIZED CROCHET MACHINE\nMODEL B16 20\nPOWER 1.5KW' }, { description: 'INVERTER MODEL JK200A' }], needs_review: false, message: '' };
     (aiCall as jest.Mock).mockResolvedValue(expected);
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     const db = { classificationSearch: { create: jest.fn() } } as unknown as Database;
     const service = new ClassificationService(db, {} as HsCodesService, auth);
     expect(await service.prepareItems(text, { ip: 'batch-prepare' } as any)).toEqual(expected);
@@ -20,7 +20,7 @@ describe('multi-product preparation', () => {
     expect(auth.verify).toHaveBeenCalled();
   });
   it('rejects empty input before calling the model', async () => {
-    const service = new ClassificationService({} as Database, {} as HsCodesService, { verify: () => undefined } as unknown as AuthService);
+    const service = new ClassificationService({} as Database, {} as HsCodesService, { verify: async () => ({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService);
     await expect(service.prepareItems(' ', { ip: 'batch-empty' } as any)).rejects.toMatchObject({ status: 400 });
     expect(aiCall).not.toHaveBeenCalled();
   });

@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { COMPANY_EMAIL_MESSAGE, isCompanyEmail } from '../src/auth/email-policy';
 
 config({ path: resolve(__dirname, '../../.env') });
 
@@ -11,6 +12,7 @@ async function main() {
   if (!email || !password || password.length < 12) {
     throw new Error('Set ADMIN_EMAIL and ADMIN_PASSWORD (at least 12 characters).');
   }
+  if (!isCompanyEmail(email)) throw new Error(COMPANY_EMAIL_MESSAGE);
   const db = new PrismaClient();
   try {
     const passwordHash = await bcrypt.hash(password, 12);

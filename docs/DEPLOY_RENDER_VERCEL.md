@@ -89,9 +89,9 @@ Repo hiện ghim `pnpm@11.7.0`. Tài liệu Vercel liệt kê nhận dạng tự
 
 ## 4. Tạo quản trị và nạp dữ liệu
 
-**Nếu dùng DB cũ:** đăng nhập bằng admin cũ. Đối chiếu danh mục và nguồn đã lưu. Những tệp gốc cũ có đường dẫn trên Windows cần chuyển/tải lại để reindex hoặc xóa được trên Render.
+**Nếu dùng DB cũ:** admin cũ chỉ đăng nhập được khi email thuộc `@unigroup.com.vn`. Nếu email cũ thuộc tên miền khác, cấu hình email công ty và chạy `admin:create` như bên dưới để tạo quản trị viên mới; dữ liệu cũ được giữ nguyên. Đối chiếu danh mục và nguồn đã lưu. Những tệp gốc cũ có đường dẫn trên Windows cần chuyển/tải lại để reindex hoặc xóa được trên Render.
 
-**Nếu dùng DB mới:** trên máy local, cấu hình `DATABASE_URL` bằng **External Database URL** của Render Postgres (`sslmode=require`), cùng `ADMIN_EMAIL` và `ADMIN_PASSWORD` (tối thiểu 12 ký tự) trong biến môi trường của terminal, rồi chạy:
+**Nếu dùng DB mới:** trên máy local, cấu hình `DATABASE_URL` bằng **External Database URL** của Render Postgres (`sslmode=require`), cùng `ADMIN_EMAIL` thuộc `@unigroup.com.vn` và `ADMIN_PASSWORD` (tối thiểu 12 ký tự) trong biến môi trường của terminal, rồi chạy:
 
 ```powershell
 pnpm --dir backend prisma:generate

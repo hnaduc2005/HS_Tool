@@ -1,5 +1,6 @@
-import { Controller, Get, Injectable, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, Get, Injectable, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { Database } from '../database';
+import { UserGuard } from '../auth/auth';
 
 function cleanCode(value: string) { return value.replace(/\D/g, ''); }
 export type CatalogHints = { queries?: string[]; heading_hints?: string[] };
@@ -131,6 +132,7 @@ export class HsCodesService {
 }
 
 @Controller('hs-codes')
+@UseGuards(UserGuard)
 export class HsCodesController {
   constructor(private readonly service: HsCodesService, private readonly db: Database) {}
   @Get('search') search(@Query('q') query: string, @Query('limit') limit?: string) { return this.service.search(query, Number(limit || 20)); }

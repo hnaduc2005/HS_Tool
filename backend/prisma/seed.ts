@@ -3,6 +3,7 @@ import { resolve, join } from 'path';
 import { promises as fs } from 'fs';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { COMPANY_EMAIL_MESSAGE, isCompanyEmail } from '../src/auth/email-policy';
 
 const root = resolve(__dirname, '../..');
 config({ path: join(root, '.env') });
@@ -32,6 +33,7 @@ async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
   if (email && password) {
+    if (!isCompanyEmail(email)) throw new Error(COMPANY_EMAIL_MESSAGE);
     if (password.length < 12) throw new Error('ADMIN_PASSWORD must have at least 12 characters');
     await db.user.upsert({ where: { email }, update: { passwordHash: await bcrypt.hash(password, 12), role: 'ADMIN' }, create: { email, passwordHash: await bcrypt.hash(password, 12), role: 'ADMIN' } });
     process.stdout.write(`Admin created: ${email}\n`);

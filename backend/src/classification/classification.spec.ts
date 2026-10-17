@@ -14,7 +14,7 @@ describe('classification guardrails', () => {
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValueOnce([{ code: '48119099', description: 'Giấy khác, loại khác' }])
       .mockResolvedValueOnce([{ code: '48115999', description: 'Giấy phủ plastic, loại khác' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     let analyses = 0;
     (aiCall as jest.Mock).mockImplementation(async route => {
       if (route === '/discover-candidates') return {};
@@ -35,7 +35,7 @@ describe('classification guardrails', () => {
     const create = jest.fn();
     const db = { classificationSearch: { create } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockRejectedValue(new HttpException('AI_SERVICE_UNAVAILABLE', HttpStatus.SERVICE_UNAVAILABLE));
     await expect(new ClassificationService(db, hs, auth).search('Kệ TV bằng gỗ ghép và ván MDF', { ip: 'outage-test' } as any))
       .rejects.toMatchObject({ status: HttpStatus.SERVICE_UNAVAILABLE });
@@ -46,7 +46,7 @@ describe('classification guardrails', () => {
     const chunk = { id: 'chunk-1', documentId: 'doc-1', page: 1, content: 'Quy tắc 1: phân loại theo nội dung nhóm.', document: { title: 'Quy tắc tổng quát', source: 'Nguồn thử' } };
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockImplementation(async (route) => route === '/discover-candidates'
       ? { queries: ['đồ nội thất bằng gỗ'], heading_hints: ['9403'] }
       : { status: 'INSUFFICIENT_EVIDENCE', normalized_product: { product_name: 'Kệ TV' }, missing_information: ['Cần đối chiếu mã tám số'],
@@ -64,7 +64,7 @@ describe('classification guardrails', () => {
     const create = jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...data, results: [] }));
     const db = { classificationSearch: { create } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([{ code: '61091010', description: 'Áo phông nam' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockResolvedValue({ status: 'COMPLETED', recommended_code: '99999999', normalized_product: {}, missing_information: [] });
     const service = new ClassificationService(db, hs, auth);
     const result = await service.search('Áo thun nam 100% cotton', { ip: 'test-ip' } as any);
@@ -77,7 +77,7 @@ describe('classification guardrails', () => {
     const chunk = { id: 'chunk-1', documentId: 'doc-1', page: 1, content: '9403.60 - Đồ nội thất bằng gỗ khác', document: { title: 'Danh mục HS', source: 'Nguồn thử' } };
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([{ code: '940360', description: 'Đồ nội thất bằng gỗ khác' }, { code: '94036090', description: 'Loại khác' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockImplementation(async (route) => route === '/discover-candidates' ? {}
       : { status: 'COMPLETED', recommended_code: '940360', normalized_product: {}, missing_information: [],
           sources: [{ chunk_id: 'chunk-1', document_id: 'doc-1', page: 1, relevance_score: .8 }],
@@ -92,7 +92,7 @@ describe('classification guardrails', () => {
     const chunk = { id: 'chunk-1', documentId: 'doc-1', page: 76, content: 'Chú giải 2 Chương 16', document: { title: 'Nghị định 26/2023', source: 'https://congbao.chinhphu.vn/' } };
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([{ code: '16052990', description: 'Tôm chế biến, loại khác' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockResolvedValue({ status: 'INSUFFICIENT_EVIDENCE', normalized_product: { provisional_code: '16052990' },
       missing_information: ['Cần xác nhận 10% thành phần'], sources: [{ chunk_id: 'chunk-1', document_id: 'doc-1', page: 76, relevance_score: .9 }],
       legal_analysis: { summary: 'Phần đã khai có 21% tôm và thịt.', product_facts: ['Tôm 11%, thịt 10%'],
@@ -113,7 +113,7 @@ describe('classification guardrails', () => {
     const chunk = { id: 'chunk-1', documentId: 'doc-1', page: 1, content: '9403.60 Đồ nội thất bằng gỗ; 9403.70 Đồ nội thất bằng plastic', document: { title: 'Danh mục HS', source: 'Nguồn thử' } };
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } as any } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([{ code: '94036090', description: 'Đồ nội thất bằng gỗ khác' }, { code: '94037090', description: 'Đồ nội thất bằng plastic khác' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     const wood = { code: '94036090', label: 'Bằng gỗ', assumptions: ['Kệ TV bằng gỗ'], reasoning: 'Đối chiếu nhánh đồ nội thất bằng gỗ khác.', source_chunk_ids: ['chunk-1'] };
     const plastic = { code: '94037090', label: 'Bằng plastic', assumptions: ['Kệ TV bằng plastic'], reasoning: 'Đối chiếu nhánh đồ nội thất bằng plastic khác.', source_chunk_ids: ['chunk-1'] };
     (aiCall as jest.Mock).mockImplementation(async (route) => route === '/discover-candidates' ? {}
@@ -137,7 +137,7 @@ describe('classification guardrails', () => {
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue([chunk]) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValueOnce([{ code: '19049010', description: 'Chế phẩm từ gạo' }])
       .mockResolvedValueOnce([{ code: '16052990', description: 'Tôm chế biến khác' }, { code: '16024991', description: 'Thịt lợn chế biến khác, kín khí để bán lẻ' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     const recovery = { heading_hints: ['16052990', '160249'], queries: ['chế phẩm tôm', 'thịt lợn chế biến'] };
     let analyses = 0;
     (aiCall as jest.Mock).mockImplementation(async (route) => {
@@ -156,10 +156,10 @@ describe('classification guardrails', () => {
     expect(saved.legalAnalysis.hypotheses.map((h: any) => h.code)).toEqual(['16052990', '16024991']);
     expect(saved.normalizedProduct.provisional_code).toBe('16052990');
   });
-  it('accepts feedback for an anonymous search ID', async () => {
+  it('allows a signed-in member to give feedback on a legacy unowned search', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'feedback-1' });
     const db = { classificationSearch: { findUnique: jest.fn().mockResolvedValue({ id: 'search-1', userId: null, results: [{ id: 'result-1' }] }) }, feedback: { create } } as unknown as Database;
-    const service = new ClassificationService(db, {} as HsCodesService, { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService);
+    const service = new ClassificationService(db, {} as HsCodesService, { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService);
     await service.feedback('search-1', { is_correct: true }, { ip: 'feedback-test' } as any);
     expect(create.mock.calls[0][0].data.resultId).toBe('result-1');
   });
@@ -168,7 +168,7 @@ describe('classification guardrails', () => {
     const chunks = ['rule', 'tie', 'sock'].map(id => ({ id, documentId: 'doc-1', page: 8, content: id, document: { title: 'Căn cứ', source: 'Nguồn thử' } }));
     const db = { classificationSearch: { create }, documentChunk: { findMany: jest.fn().mockResolvedValue(chunks) } } as unknown as Database;
     const hs = { candidates: jest.fn().mockResolvedValue([{ code: '62152090', description: 'Cà vạt sợi nhân tạo, loại khác' }, { code: '61159500', description: 'Bít tất dệt kim từ bông' }]) } as unknown as HsCodesService;
-    const auth = { verify: jest.fn().mockReturnValue(undefined) } as unknown as AuthService;
+    const auth = { verify: jest.fn().mockResolvedValue({ sub: 'member-1', email: 'member@unigroup.com.vn', role: 'USER' }) } as unknown as AuthService;
     (aiCall as jest.Mock).mockImplementation(async route => route === '/discover-candidates' ? {} : {
       status: 'CONDITIONAL', normalized_product: { provisional_code: '62152090' }, missing_information: ['Chất liệu chưa khai'],
       legal_analysis: { summary: 'Chưa đủ căn cứ để xác định một mã duy nhất.',

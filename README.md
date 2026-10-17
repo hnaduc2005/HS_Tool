@@ -88,13 +88,21 @@ pnpm --dir backend db:seed
 
 Mở `http://localhost:3000`. API NestJS ở `http://localhost:3001/api`. Health AI service ở `http://localhost:8000/health`.
 
+## Đăng nhập nội bộ Unigroup
+
+Người dùng phải đăng nhập tại `/auth` trước khi tra cứu, phân tích, tải tài liệu sản phẩm, xem kết quả/lịch sử hoặc gửi phản hồi. Chỉ email có tên miền chính xác `@unigroup.com.vn` được đăng ký và đăng nhập; email được chuẩn hóa chữ thường và bỏ khoảng trắng ở hai đầu. Tên miền phụ và tên miền giả như `@unigroup.com.vn.example.com` bị từ chối. Trang đăng nhập đưa người dùng trở lại liên kết kết quả đã mở trước đó; nút **Đăng xuất** nằm trên thanh điều hướng.
+
+Backend kiểm tra chữ ký/hạn JWT và email, quyền hiện tại trong cơ sở dữ liệu ở mỗi yêu cầu. Tài khoản ngoài công ty, tài khoản đã xóa và token hết hạn không được sử dụng API, kể cả token đã cấp trước thay đổi này. `/api/health` vẫn công khai để kiểm tra tình trạng dịch vụ. `ADMIN_EMAIL` cũng phải thuộc `@unigroup.com.vn`; quản trị viên cũ dùng email khác cần tạo tài khoản công ty bằng `pnpm --dir backend admin:create` sau khi cập nhật cấu hình. Không tự động đổi email hoặc xóa dữ liệu tài khoản cũ.
+
+Luồng hiện tại dùng email và mật khẩu riêng của HS Atlas, chưa xác minh quyền sở hữu hộp thư qua email hoặc SSO. Các script `verify_legal_results.py` và `verify_free_fallback.py` cần biến môi trường `HS_AUTH_TOKEN` chứa access token của một tài khoản công ty.
+
 ## Biến môi trường
 
 Xem `.env.example`. Các biến chính: `DATABASE_URL`, `AI_PROVIDER`, `AI_API_KEY`, `AI_BASE_URL`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS`, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, `JWT_SECRET`, `DOCUMENT_STORAGE_PATH`, `FRONTEND_ORIGIN`, `NEXT_PUBLIC_API_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Bật OpenRouter dự phòng miễn phí khi Gemini trả HTTP 429 bằng `AI_FALLBACK_PROVIDER=openrouter`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL` và `OPENROUTER_CHAT_MODEL=openrouter/free`. Model phải được xác minh giá bằng 0; mỗi request giới hạn giá bằng 0. Embedding tiếp tục dùng Gemini. Hướng dẫn chi tiết tại [docs/AI_SETUP.md](docs/AI_SETUP.md). Không commit `.env`.
 
 ## Nhập mã HS và Knowledge Base
 
-1. Đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` trong `.env` trước khi seed. Không có mật khẩu admin mặc định. Seed chỉ tạo admin khi có cả hai biến.
+1. Đặt `ADMIN_EMAIL` thuộc `@unigroup.com.vn` và `ADMIN_PASSWORD` trong `.env` trước khi seed. Không có mật khẩu admin mặc định. Seed chỉ tạo admin khi có cả hai biến.
 2. Đăng nhập `/auth`, mở `/admin`.
 3. Tab **Mã HS** nhận CSV có cột `code,description` hoặc Excel có sheet `BT2026` (cột F mã, G mô tả). File `HS_AI/TL/BIEU THUE XNK 2026.xlsx` có cấu trúc này. Hệ thống ghi tên file làm provenance; quản trị viên phải kiểm tra độ tin cậy/hiệu lực nguồn.
 4. Tab **Tài liệu** nhận PDF, DOCX, XLSX, TXT tối đa 60 MB. PDF giữ số trang; Excel giữ sheet và dòng trong metadata; DOCX/TXT không có số trang đáng tin cậy.
@@ -105,11 +113,11 @@ Storage local ở `storage/`, được `.gitignore`. Đường dẫn chỉ đư�
 ## API và thử bằng curl
 
 ```bash
-curl -X POST http://localhost:3001/api/auth/register -H 'Content-Type: application/json' -d '{"email":"user@example.com","password":"strongpassword123"}'
-curl -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{"email":"user@example.com","password":"strongpassword123"}'
-curl 'http://localhost:3001/api/hs-codes/search?q=6109'
-curl -X POST http://localhost:3001/api/classification/search -H 'Content-Type: application/json' -d '{"description":"Áo thun nam 100% cotton, dệt kim"}'
-curl http://localhost:3001/api/classification/<search-id>
+curl -X POST http://localhost:3001/api/auth/register -H 'Content-Type: application/json' -d '{"email":"user@unigroup.com.vn","password":"strongpassword123"}'
+curl -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{"email":"user@unigroup.com.vn","password":"strongpassword123"}'
+curl 'http://localhost:3001/api/hs-codes/search?q=6109' -H 'Authorization: Bearer <token>'
+curl -X POST http://localhost:3001/api/classification/search -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{"description":"Áo thun nam 100% cotton, dệt kim"}'
+curl http://localhost:3001/api/classification/<search-id> -H 'Authorization: Bearer <token>'
 curl http://localhost:3001/api/classification/history -H 'Authorization: Bearer <token>'
 curl -X POST http://localhost:3001/api/classification/<search-id>/feedback -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{"is_correct":true}'
 curl -X POST http://localhost:3001/api/admin/documents -H 'Authorization: Bearer <admin-token>' -F 'title=Chú giải HS' -F 'source=Nguồn cần kiểm chứng' -F 'file=@example.pdf'
@@ -154,7 +162,7 @@ pnpm --dir frontend start
 
 Chạy AI service bằng `python run.py` từ `ai-service/` trên Windows để Psycopg dùng selector event loop. Trên Linux, có thể chạy `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`. Dùng reverse proxy HTTPS cho frontend/API, giữ cổng AI service trong mạng nội bộ, chạy migration `db:deploy` trước khi chuyển phiên bản, sao lưu PostgreSQL và storage định kỳ.
 
-- API key chỉ ở server; JWT giới hạn 12 giờ; history cần đăng nhập, feedback của lượt tra cứu có chủ tài khoản chỉ chủ sở hữu được gửi; quản trị cần role `ADMIN`.
+- API key chỉ ở server; JWT giới hạn 12 giờ; tất cả API nghiệp vụ yêu cầu tài khoản `@unigroup.com.vn`, kết quả và phản hồi có chủ tài khoản chỉ chủ sở hữu được truy cập; quản trị cần role `ADMIN` hiện tại trong DB.
 - Upload kiểm tra đuôi, magic bytes và kích thước. Nội dung tài liệu được làm sạch control characters và được coi là dữ liệu không đáng tin trong prompt.
 - Rate limit hiện là 10 lượt phân loại/phút theo IP hoặc user trong **một process**. Production nhiều instance cần rate limit tập trung ở gateway/Redis.
 - Bản MVP lưu token ở `sessionStorage`; production nên chuyển sang cookie HttpOnly, HTTPS, CSRF protection và quản lý phiên đầy đủ.

@@ -1,3 +1,5 @@
+import { AUTH_EXPIRED_EVENT, AUTH_TOKEN_KEY } from '@/lib/auth';
+
 export const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 export type Source = { id: string; page: number | null; relevanceScore: number; document: { id: string; title: string; source: string }; chunk: { content: string } };
 export type Result = { id: string; hsCode: string; description: string; confidence: number; reasoning: string; rank: number; sources: Source[] };
@@ -49,10 +51,23 @@ export function hasAiServiceFailure(search: Search): boolean {
   return [...(search.missingInformation || []), ...(search.legalAnalysis?.limitations || [])]
     .some(note => note.includes('Dịch vụ phân tích') && /không sẵn sàng|chưa sẵn sàng/.test(note));
 }
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) { super(message); }
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window === 'undefined' ? null : sessionStorage.getItem('hs_token');
-  const response = await fetch(`${API}${path}`, { ...options, headers: { ...(options.body instanceof FormData ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...options.headers } });
+  const publicAuth = path === '/auth/login' || path === '/auth/register';
+  const token = typeof window === 'undefined' || publicAuth ? null : sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const response = await fetch(`${API}${path}`, { cache: 'no-store', ...options, headers: { ...(options.body instanceof FormData ? {} : { 'content-type': 'application/json' }), ...(token ? { authorization: `Bearer ${token}` } : {}), ...options.headers } });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message || body.error || `HTTP ${response.status}`);
+  if (!response.ok) {
+    if (!publicAuth && typeof window !== 'undefined'
+      && (response.status === 401 || (response.status === 403 && body.code === 'EMAIL_DOMAIN_NOT_ALLOWED'))
+      && sessionStorage.getItem(AUTH_TOKEN_KEY) === token) {
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
+    throw new ApiError(Array.isArray(body.message) ? body.message.join('. ') : body.message || body.error || `HTTP ${response.status}`, response.status);
+  }
   return body as T;
 }

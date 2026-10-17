@@ -66,7 +66,7 @@ $frontendEntry = Join-Path $projectRoot 'frontend/node_modules/next/dist/bin/nex
 if (-not (Test-Path -LiteralPath $backendEntry) -or -not (Test-Path -LiteralPath $frontendEntry)) { throw 'Missing Node dependencies. Run pnpm install first.' }
 $backendProcess = Start-ServiceProcess 'backend' $backendPort $nodeExe @(('"' + $backendEntry + '"'), 'start', '--watch') (Join-Path $projectRoot 'backend')
 $frontendProcess = Start-ServiceProcess 'frontend' 3000 $nodeExe @(('"' + $frontendEntry + '"'), 'dev', '--port', '3000') (Join-Path $projectRoot 'frontend')
-Wait-Http "http://127.0.0.1:$backendPort/api/hs-codes/search?q=6109" $backendProcess
+Wait-Http "http://127.0.0.1:$backendPort/api/health" $backendProcess
 Wait-Http 'http://127.0.0.1:3000' $frontendProcess
 Write-Host 'HS Atlas ready at http://localhost:3000'
 try {

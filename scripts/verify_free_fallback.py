@@ -1,6 +1,7 @@
 """Verify the free OpenRouter fallback using real catalog entries and legal retrieval."""
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,13 +23,16 @@ async def main():
         raise httpx.HTTPStatusError('Simulated quota', request=request,
             response=httpx.Response(429, request=request, headers={'retry-after': '1'}))
     ai.primary.chat = exhausted
-    async with httpx.AsyncClient(timeout=15) as client:
+    token = os.environ.get('HS_AUTH_TOKEN')
+    if not token:
+        raise ValueError('Set HS_AUTH_TOKEN to a company account access token before running this check')
+    async with httpx.AsyncClient(timeout=15, headers={'Authorization': f'Bearer {token}'}) as client:
         response = await client.get('http://127.0.0.1:3001/api/hs-codes/search', params={'q': '8447', 'limit': 50})
         response.raise_for_status()
         catalog = response.json()
     descriptions = {row['code']: row['description'] for row in catalog}
     # Match the backend classification input, which includes ancestor conditions.
-    # The public catalog search returns leaf labels for browsing.
+    # The catalog search returns leaf labels for browsing.
     candidates = [{**row, 'description': ' → '.join(
         descriptions[code].lstrip('- ').strip() for code in (row['code'][:4], row['code'][:6], row['code'])
         if code in descriptions)} for row in catalog if len(row['code']) == 8]

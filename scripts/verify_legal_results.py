@@ -1,6 +1,7 @@
 """Smoke check the running local stack without exposing credentials."""
 import json
 import argparse
+import os
 from pathlib import Path
 import httpx
 
@@ -31,7 +32,10 @@ args = parser.parse_args()
 unknown = set(args.samples) - samples.keys()
 if unknown: parser.error(f'Unknown samples: {", ".join(sorted(unknown))}')
 args.output_dir.mkdir(parents=True, exist_ok=True)
-with httpx.Client(timeout=240) as client:
+token = os.environ.get('HS_AUTH_TOKEN')
+if not token:
+    parser.error('Set HS_AUTH_TOKEN to a company account access token before running this check')
+with httpx.Client(timeout=240, headers={'Authorization': f'Bearer {token}'}) as client:
     for name, description in samples.items():
         if args.samples and name not in args.samples: continue
         response = client.post('http://127.0.0.1:3001/api/classification/search', json={'description': description})

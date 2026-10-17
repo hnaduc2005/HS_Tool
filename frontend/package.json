@@ -1,7 +1,7 @@
 {
   "name": "hs-ai-frontend",
   "private": true,
-  "scripts": { "dev": "next dev", "build": "next build", "start": "next start", "test": "node tests/classification-output.test.cjs" },
+  "scripts": { "dev": "next dev", "build": "next build", "start": "next start", "test": "node tests/run.cjs" },
   "dependencies": {
     "next": "^15.3.0", "react": "^19.0.0", "react-dom": "^19.0.0",
     "lucide-react": "^0.468.0", "clsx": "^2.1.1", "tailwind-merge": "^3.0.0",

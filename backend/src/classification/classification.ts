@@ -86,16 +86,16 @@ function checkRate(key: string) {
 export class ClassificationService {
   constructor(private readonly db: Database, private readonly hs: HsCodesService, private readonly auth: AuthService) {}
   async prepareItems(description: string, req: AuthRequest) {
-    const session = this.auth.verify(req);
-    checkRate(`prepare:${session?.sub || req.ip || 'unknown'}`);
+    const session = req.session || await this.auth.verify(req);
+    checkRate(`prepare:${session.sub}`);
     const text = description.trim();
     if (text.length < 2) throw new BadRequestException('Nhập mô tả hàng hóa từ 2 ký tự.');
     return aiCall<{ items: { description: string }[]; needs_review: boolean; message: string }>(
       '/prepare-items', { description: text }, 120000);
   }
   async search(description: string, req: AuthRequest, declaration: DeclarationInput = {}) {
-    const session = this.auth.verify(req);
-    checkRate(session?.sub || req.ip || 'unknown');
+    const session = req.session || await this.auth.verify(req);
+    checkRate(session.sub);
     const input = declarationDescription(description, declaration);
     let hints: CatalogHints = {};
     try { hints = (await aiCall<CatalogHints>('/discover-candidates', { description: input }, 60000)) || {}; }
@@ -211,13 +211,13 @@ export class ClassificationService {
       if (!legalSteps.length) missing.push('Chưa xác minh được điều khoản pháp lý cụ thể có trích dẫn hợp lệ.');
       legalAnalysis.limitations = [...new Set([...legalAnalysis.limitations, ...missing])];
       if (ai.status === 'COMPLETED') legalAnalysis.conclusion = 'Chưa đủ căn cứ để chốt mã HS.';
-      return this.saveAnalysis(input, session?.sub, normalizedProduct, missing.length ? missing : hypotheses.length ? [] : ['Cần bổ sung nguồn tài liệu để đối chiếu'], legalAnalysis);
+      return this.saveAnalysis(input, session.sub, normalizedProduct, missing.length ? missing : hypotheses.length ? [] : ['Cần bổ sung nguồn tài liệu để đối chiếu'], legalAnalysis);
     }
     const ranked = [{ code: ai.recommended_code, score: ai.llm_score ?? 0.5, reasoning: ai.reasoning || '' }, ...(ai.candidates || []).filter(c => c.code !== ai.recommended_code)]
       .filter(c => c.code.length === 8 && candidateMap.has(c.code)).slice(0, 4);
     const result = await this.db.classificationSearch.create({
       data: {
-        userId: session?.sub, productDescription: input, normalizedProduct: normalizedProduct as Prisma.InputJsonValue,
+        userId: session.sub, productDescription: input, normalizedProduct: normalizedProduct as Prisma.InputJsonValue,
         legalAnalysis: legalAnalysis as unknown as Prisma.InputJsonValue,
         status: 'COMPLETED', missingInformation: (ai.missing_information || []) as Prisma.InputJsonValue,
         results: { create: ranked.map((r, i) => ({
@@ -256,25 +256,27 @@ export class ClassificationService {
       legalAnalysis: fallback as unknown as Prisma.InputJsonValue, status: conditional ? 'CONDITIONAL' : 'INSUFFICIENT_EVIDENCE', missingInformation: missing as Prisma.InputJsonValue }, include: this.include });
   }
   async get(id: string, req: AuthRequest) {
+    const user = req.session || await this.auth.verify(req);
     const record = await this.db.classificationSearch.findUnique({ where: { id }, include: this.include });
-    if (!record || (record.userId && record.userId !== this.auth.verify(req)?.sub)) throw new NotFoundException();
+    if (!record || (record.userId && record.userId !== user.sub)) throw new NotFoundException();
     return record;
   }
-  history(req: AuthRequest, page: number) {
-    const user = this.auth.verify(req, true)!;
+  async history(req: AuthRequest, page: number) {
+    const user = req.session || await this.auth.verify(req);
     return this.db.classificationSearch.findMany({ where: { userId: user.sub }, orderBy: { createdAt: 'desc' }, skip: (Math.max(1, page) - 1) * 20, take: 20, include: this.include });
   }
   async feedback(id: string, input: FeedbackDto, req: AuthRequest) {
-    const user = this.auth.verify(req);
-    checkRate(`feedback:${user?.sub || req.ip || 'unknown'}`);
+    const user = req.session || await this.auth.verify(req);
+    checkRate(`feedback:${user.sub}`);
     const search = await this.db.classificationSearch.findUnique({ where: { id }, include: { results: true } });
-    if (!search || (search.userId && search.userId !== user?.sub)) throw new NotFoundException();
+    if (!search || (search.userId && search.userId !== user.sub)) throw new NotFoundException();
     if (input.result_id && !search.results.some(r => r.id === input.result_id)) throw new BadRequestException('Kết quả không thuộc lượt tra cứu');
     return this.db.feedback.create({ data: { searchId: id, resultId: input.result_id || search.results[0]?.id, isCorrect: input.is_correct, correctHsCode: input.correct_hs_code, comment: input.comment } });
   }
 }
 
 @Controller('classification')
+@UseGuards(UserGuard)
 export class ClassificationController {
   constructor(private readonly service: ClassificationService, private readonly storage: LocalDocumentStorage) {}
   @Post('extract') @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } })) async extract(@UploadedFile() file?: Express.Multer.File) {
@@ -287,7 +289,7 @@ export class ClassificationController {
   }
   @Post('search') search(@Body() body: SearchDto, @Req() req: AuthRequest) { return this.service.search(body.description, req, body.declaration || undefined); }
   @Post('prepare-items') prepareItems(@Body() body: PrepareItemsDto, @Req() req: AuthRequest) { return this.service.prepareItems(body.description, req); }
-  @Get('history') @UseGuards(UserGuard) history(@Req() req: AuthRequest, @Query('page') page?: string) { return this.service.history(req, Number(page || 1)); }
+  @Get('history') history(@Req() req: AuthRequest, @Query('page') page?: string) { return this.service.history(req, Number(page || 1)); }
   @Get(':id') get(@Param('id') id: string, @Req() req: AuthRequest) { return this.service.get(id, req); }
   @Post(':id/feedback') feedback(@Param('id') id: string, @Body() body: FeedbackDto, @Req() req: AuthRequest) { return this.service.feedback(id, body, req); }
 }
