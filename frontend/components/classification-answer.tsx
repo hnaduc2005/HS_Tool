@@ -49,6 +49,10 @@ function ClassificationContent({ result }: { result: Search }) {
       {oldShortResult && <p className="mt-3 text-sm">Kết quả cũ chỉ có phân nhóm {primary.hsCode}. Tra cứu lại để đối chiếu mã tám số.</p>}
     </header>
 
+    <aside aria-label="Lưu ý về kết quả AI" className="border-b border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-950 md:px-8">
+      <strong>Lưu ý:</strong> Kết quả do AI tạo ra có thể có sai sót và chỉ mang tính tham khảo. Vui lòng kiểm tra lại mã HS, thuế suất và đối chiếu quy định, chứng từ hiện hành trước khi khai báo.
+    </aside>
+
     <div className="space-y-7 p-5 text-sm leading-6 text-slate-700 md:p-8">
       {completed && <>
         <section className="rounded-xl border border-line bg-paper p-5" aria-label="Tên hàng khai báo">

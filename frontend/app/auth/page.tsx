@@ -34,7 +34,7 @@ export default function AuthPage() {
   return <main className="mx-auto max-w-md px-5 py-16"><Card className="p-8">
     <p className="text-xs font-bold uppercase tracking-wider text-forest">Dành cho nội bộ Unigroup</p>
     <h1 className="mt-2 text-2xl font-bold">{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}</h1>
-    <p id="email-policy" className="mt-2 text-sm text-slate-500">Sử dụng email <strong>@unigroup.com.vn</strong> để đăng nhập và tra cứu mã HS.</p>
+    <p id="email-policy" className="mt-2 text-sm text-slate-500">Sử dụng email do công ty cấp để tra cứu mã HS.</p>
     <form onSubmit={submit} className="mt-7 space-y-4">
       <div><label className="mb-2 block text-sm font-semibold" htmlFor="email">Email công ty</label><Input id="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="ten.ban@unigroup.com.vn" aria-describedby="email-policy" required disabled={busy} value={email} onChange={e => setEmail(e.target.value)}/></div>
       <div><label className="mb-2 block text-sm font-semibold" htmlFor="password">Mật khẩu</label><Input id="password" type="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} minLength={mode === 'register' ? 10 : undefined} required disabled={busy} value={password} onChange={e => setPassword(e.target.value)}/>{mode === 'register' && <p className="mt-2 text-xs text-slate-500">Mật khẩu tài khoản HS Atlas gồm ít nhất 10 ký tự.</p>}</div>
