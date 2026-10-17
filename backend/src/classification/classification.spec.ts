@@ -30,6 +30,7 @@ describe('classification guardrails', () => {
     expect(result.status).toBe('CONDITIONAL');
     expect(create.mock.calls[0][0].data.legalAnalysis.hypotheses[0].code).toBe('48119099');
     expect(create.mock.calls[0][0].data.normalizedProduct.provisional_code).toBe('48119099');
+    expect(create.mock.calls[0][0].data.userId).toBe('member-1');
   });
   it('does not save an AI outage as missing product evidence', async () => {
     const create = jest.fn();

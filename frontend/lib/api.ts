@@ -37,7 +37,7 @@ export type LegalAnalysis = {
   tariff_rates?: TariffRates | null;
   references: { chunk_id: string; document_id: string; title: string; source: string; page: number | null; excerpt: string }[];
 };
-export type Search = { id: string; productDescription: string; normalizedProduct: Record<string, string | number | string[] | null>; legalAnalysis?: LegalAnalysis; status: string; missingInformation: string[]; createdAt: string; results: Result[] };
+export type Search = { id: string; userId?: string | null; productDescription: string; normalizedProduct: Record<string, string | number | string[] | null>; legalAnalysis?: LegalAnalysis; status: string; missingInformation: string[]; createdAt: string; results: Result[] };
 export type PreparedItems = { items: { description: string }[]; needs_review: boolean; message: string };
 export function searchCodeLabel(search: Search): string {
   const first = search.legalAnalysis?.hypotheses?.[0];

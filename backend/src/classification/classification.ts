@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Get, HttpException, HttpStatus, 
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { Express } from 'express';
-import { IsBoolean, IsIn, IsObject, IsOptional, IsString, MaxLength, Matches, ValidateNested } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, Max, MaxLength, Matches, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Prisma } from '@prisma/client';
 import { Database } from '../database';
@@ -28,6 +28,11 @@ class SearchDto {
 }
 class PrepareItemsDto {
   @IsString() @MaxLength(20000) description!: string;
+}
+type HistoryScope = 'all' | 'mine' | 'legacy';
+class HistoryQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
+  @IsOptional() @IsIn(['all', 'mine', 'legacy']) scope: HistoryScope = 'all';
 }
 class FeedbackDto {
   @IsBoolean() is_correct!: boolean;
@@ -239,7 +244,7 @@ export class ClassificationService {
       && hypothesis.assumptions?.length && hypothesis.reasoning && hypothesis.source_chunk_ids?.length
       && (hypothesis.classification_mode !== 'separate' || (hypothesis.items?.length && hypothesis.items.every(item => allowed.has(item.code) && item.source_chunk_ids?.length)))).length;
   }
-  private saveAnalysis(description: string, userId: string | undefined, normalized: object, missing: string[], analysis?: LegalAnalysis) {
+  private saveAnalysis(description: string, userId: string, normalized: object, missing: string[], analysis?: LegalAnalysis) {
     const fallback: LegalAnalysis = analysis || { summary: 'Chưa thể xác định mã HS từ dữ kiện hiện có.', product_facts: [description], legal_steps: [], alternatives: [], conclusion: 'Chưa đủ căn cứ để kết luận mã HS.', limitations: missing, references: [] };
     const conditional = !!fallback.hypotheses?.length && !!fallback.legal_steps.length;
     if (conditional) {
@@ -261,9 +266,13 @@ export class ClassificationService {
     if (!record || (record.userId && record.userId !== user.sub)) throw new NotFoundException();
     return record;
   }
-  async history(req: AuthRequest, page: number) {
+  async history(req: AuthRequest, page: number, scope: HistoryScope = 'all') {
     const user = req.session || await this.auth.verify(req);
-    return this.db.classificationSearch.findMany({ where: { userId: user.sub }, orderBy: { createdAt: 'desc' }, skip: (Math.max(1, page) - 1) * 20, take: 20, include: this.include });
+    // Legacy searches were public before login was required. Keep them available
+    // to company members without assigning them to an arbitrary account.
+    const where: Prisma.ClassificationSearchWhereInput = scope === 'mine' ? { userId: user.sub }
+      : scope === 'legacy' ? { userId: null } : { OR: [{ userId: user.sub }, { userId: null }] };
+    return this.db.classificationSearch.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (Math.max(1, page) - 1) * 20, take: 20, include: this.include });
   }
   async feedback(id: string, input: FeedbackDto, req: AuthRequest) {
     const user = req.session || await this.auth.verify(req);
@@ -289,7 +298,7 @@ export class ClassificationController {
   }
   @Post('search') search(@Body() body: SearchDto, @Req() req: AuthRequest) { return this.service.search(body.description, req, body.declaration || undefined); }
   @Post('prepare-items') prepareItems(@Body() body: PrepareItemsDto, @Req() req: AuthRequest) { return this.service.prepareItems(body.description, req); }
-  @Get('history') history(@Req() req: AuthRequest, @Query('page') page?: string) { return this.service.history(req, Number(page || 1)); }
+  @Get('history') history(@Req() req: AuthRequest, @Query() query: HistoryQueryDto) { return this.service.history(req, query.page, query.scope); }
   @Get(':id') get(@Param('id') id: string, @Req() req: AuthRequest) { return this.service.get(id, req); }
   @Post(':id/feedback') feedback(@Param('id') id: string, @Body() body: FeedbackDto, @Req() req: AuthRequest) { return this.service.feedback(id, body, req); }
 }

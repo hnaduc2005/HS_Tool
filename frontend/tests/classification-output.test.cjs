@@ -32,7 +32,35 @@ const { ClassificationAnswer } = load('components/classification-answer.tsx');
 const { ClassificationTariff } = load('components/classification-tariff.tsx');
 const { ClassificationBatch } = load('components/classification-batch.tsx');
 const { ProductListEditor } = load('components/product-list-editor.tsx');
+const { HistoryList } = load('components/history-list.tsx');
 const { runClassificationBatch, batchError, hasNumberedRows, prepareDraftItems } = load('lib/classification-batch.ts');
+
+function historyHtml(overrides = {}) {
+  return renderToStaticMarkup(React.createElement(HistoryList, {
+    items: [], scope: 'all', loading: false, error: '', hasMore: false,
+    onScopeChange() {}, onRetry() {}, onLoadMore() {}, onRefresh() {}, ...overrides,
+  }));
+}
+test('history distinguishes legacy and personal searches and links both to saved results', () => {
+  const base = { ...result(), createdAt: '2026-10-17T05:00:00Z' };
+  const html = historyHtml({ items: [{ ...base, id: 'legacy', userId: null }, { ...base, id: 'mine', userId: 'member-1' }], hasMore: true });
+  assert.match(html, /Lịch sử cũ/);
+  assert.match(html, /Của tôi/);
+  assert.match(html, /href="\/\?search=legacy"/);
+  assert.match(html, /href="\/\?search=mine"/);
+  assert.match(html, /Xem thêm lịch sử/);
+  assert.doesNotMatch(html, /Chưa có lượt tra cứu/);
+});
+test('history shows loading or retry states without a misleading empty-history message', () => {
+  const loading = historyHtml({ loading: true });
+  assert.match(loading, /Đang tải lịch sử tra cứu/);
+  assert.doesNotMatch(loading, /Chưa có lượt tra cứu/);
+  const failed = historyHtml({ error: 'Không thể tải lịch sử' });
+  assert.match(failed, /role="alert"/);
+  assert.match(failed, /Thử lại/);
+  assert.doesNotMatch(failed, /Chưa có lượt tra cứu/);
+  assert.match(historyHtml({ scope: 'mine' }), /Chọn “Lịch sử cũ”/);
+});
 const tariff = (code, mfn) => ({ code, mfn, normal: '18', vat: '8/10', atiga: '0', acfta: '0', akfta: null, source: 'Dữ liệu thử giao diện' });
 const hypothesis = (label, assumptions, rate = '12') => ({ code: '85044090', label, classification_mode: 'single',
   assumptions, assumed_attributes: [{ attribute: 'conversion_mode', value: assumptions[0] }],

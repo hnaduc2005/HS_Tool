@@ -96,6 +96,8 @@ Backend kiểm tra chữ ký/hạn JWT và email, quyền hiện tại trong cơ
 
 Luồng hiện tại dùng email và mật khẩu riêng của HS Atlas, chưa xác minh quyền sở hữu hộp thư qua email hoặc SSO. Các script `verify_legal_results.py` và `verify_free_fallback.py` cần biến môi trường `HS_AUTH_TOKEN` chứa access token của một tài khoản công ty.
 
+Trang `/history` mặc định hiển thị lượt tra cứu của tài khoản hiện tại cùng các lượt cũ chưa gắn tài khoản (`userId = null`). Bộ lọc **Của tôi** và **Lịch sử cũ** giúp xem riêng từng phần; **Xem thêm lịch sử** tải tiếp mỗi 20 lượt, mới nhất trước. API `GET /api/classification/history` vẫn trả mảng, hỗ trợ `scope=all|mine|legacy` và `page` từ 1. Lịch sử cũ được giữ nguyên chủ sở hữu trống; các lượt đã gắn tài khoản khác không xuất hiện trong lịch sử cá nhân và chỉ mở được bởi chủ sở hữu.
+
 ## Biến môi trường
 
 Xem `.env.example`. Các biến chính: `DATABASE_URL`, `AI_PROVIDER`, `AI_API_KEY`, `AI_BASE_URL`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`, `AI_EMBEDDING_DIMENSIONS`, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, `JWT_SECRET`, `DOCUMENT_STORAGE_PATH`, `FRONTEND_ORIGIN`, `NEXT_PUBLIC_API_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Bật OpenRouter dự phòng miễn phí khi Gemini trả HTTP 429 bằng `AI_FALLBACK_PROVIDER=openrouter`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL` và `OPENROUTER_CHAT_MODEL=openrouter/free`. Model phải được xác minh giá bằng 0; mỗi request giới hạn giá bằng 0. Embedding tiếp tục dùng Gemini. Hướng dẫn chi tiết tại [docs/AI_SETUP.md](docs/AI_SETUP.md). Không commit `.env`.

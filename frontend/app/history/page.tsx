@@ -1,10 +1,39 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { api, hasAiServiceFailure, searchCodeLabel, type Search } from '@/lib/api';
-import { Card } from '@/components/ui/card';
+import { api, type Search } from '@/lib/api';
+import { HistoryList, type HistoryScope } from '@/components/history-list';
 export default function HistoryPage() {
-  const [items, setItems] = useState<Search[]>([]); const [error, setError] = useState('');
-  useEffect(() => { api<Search[]>('/classification/history').then(setItems).catch(cause => setError(cause.message)); }, []);
-  return <main className="mx-auto max-w-5xl px-5 py-12"><h1 className="text-3xl font-bold">Lịch sử tra cứu</h1><p className="mt-2 text-sm text-slate-500">Các lượt tra cứu từ tài khoản của bạn.</p>{error && <p className="mt-6 text-sm text-red-700">{error} · <Link className="underline" href="/auth">Đăng nhập</Link></p>}<div className="mt-7 space-y-3">{items.map(item => <Card key={item.id} className="p-5"><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold">{item.productDescription.slice(0, 130)}</p><p className="mt-2 text-sm text-slate-500">{hasAiServiceFailure(item) ? 'Lỗi kết nối AI' : searchCodeLabel(item)} · {new Date(item.createdAt).toLocaleString('vi-VN')}</p></div><Link href={`/?search=${item.id}`} className="text-sm font-semibold text-forest hover:underline">Xem kết quả</Link></div></Card>)}{!items.length && !error && <p className="text-sm text-slate-500">Chưa có lượt tra cứu.</p>}</div></main>;
+  const [items, setItems] = useState<Search[]>([]);
+  const [scope, setScope] = useState<HistoryScope>('all');
+  const [page, setPage] = useState(1);
+  const [refresh, setRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError('');
+    if (page === 1) { setItems([]); setHasMore(false); }
+    api<Search[]>(`/classification/history?scope=${scope}&page=${page}`, { signal: controller.signal }).then(rows => {
+      if (controller.signal.aborted) return;
+      setItems(previous => page === 1 ? rows : [...new Map([...previous, ...rows].map(item => [item.id, item])).values()]);
+      setHasMore(rows.length === 20);
+    }).catch(cause => {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? `Không thể tải lịch sử: ${cause.message}` : 'Không thể tải lịch sử. Vui lòng thử lại.');
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [scope, page, refresh]);
+
+  function changeScope(value: HistoryScope) {
+    if (value === scope) return;
+    setItems([]); setHasMore(false); setLoading(true); setError(''); setScope(value); setPage(1);
+  }
+  function reload() {
+    setLoading(true); setPage(1); setRefresh(value => value + 1);
+  }
+  return <HistoryList items={items} scope={scope} loading={loading} error={error} hasMore={hasMore}
+    onScopeChange={changeScope} onRefresh={reload}
+    onRetry={() => { setLoading(true); setRefresh(value => value + 1); }}
+    onLoadMore={() => { if (!loading) { setLoading(true); setPage(value => value + 1); } }}/>
 }

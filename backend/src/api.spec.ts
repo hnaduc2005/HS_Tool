@@ -11,6 +11,11 @@ describe('HTTP API', () => {
   const member = { id: 'user-1', email: 'member@unigroup.com.vn', role: 'USER' };
   const external = { id: 'external-1', email: 'old@example.com', role: 'ADMIN' };
   const admin = { id: 'admin-1', email: 'admin@unigroup.com.vn', role: 'ADMIN' };
+  const historyRows = [
+    { id: 'mine', userId: member.id, productDescription: 'Lượt tra cứu của tôi', results: [] },
+    { id: 'legacy', userId: null, productDescription: 'Lượt tra cứu trước đăng nhập', results: [] },
+    { id: 'saved', userId: 'other-user', productDescription: 'Lượt riêng của người khác', results: [] },
+  ];
   const headers = (id = member.id, role = 'USER') => ({ authorization: `Bearer ${jwt.sign({ sub: id, role }, process.env.JWT_SECRET!)}`, 'content-type': 'application/json' });
   beforeAll(async () => {
     process.env.JWT_SECRET = 'a-very-long-test-secret-at-least-32-characters';
@@ -23,7 +28,13 @@ describe('HTTP API', () => {
         const user = [member, external, admin].find(user => where.id ? user.id === where.id : user.email === where.email);
         return Promise.resolve(user ? { ...user, passwordHash } : null);
       }) },
-      classificationSearch: { findUnique: jest.fn().mockResolvedValue({ id: 'saved', userId: 'other-user', results: [] }) },
+      classificationSearch: {
+        findUnique: jest.fn().mockImplementation(({ where }) => Promise.resolve(historyRows.find(row => row.id === where.id) || null)),
+        findMany: jest.fn().mockImplementation(({ where, skip, take }) => {
+          const filters = where.OR || [where];
+          return Promise.resolve(historyRows.filter(row => filters.some((filter: { userId: string | null }) => row.userId === filter.userId)).slice(skip, skip + take));
+        }),
+      },
     };
     const module = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(Database).useValue(db).compile();
     app = module.createNestApplication();
@@ -86,4 +97,28 @@ describe('HTTP API', () => {
   it('does not expose another user’s saved result', async () => {
     expect((await fetch(`${base}/api/classification/saved`, { headers: headers() })).status).toBe(404);
   });
+
+  it.each([
+    ['', ['mine', 'legacy']],
+    ['?scope=mine', ['mine']],
+    ['?scope=legacy', ['legacy']],
+    ['?page=2', []],
+  ])('lists accessible history with filters %s', async (query, ids) => {
+    const response = await fetch(`${base}/api/classification/history${query}`, { headers: headers() });
+    expect(response.status).toBe(200);
+    expect((await response.json()).map((row: { id: string }) => row.id)).toEqual(ids);
+  });
+
+  it('allows a company member to reopen a legacy history result', async () => {
+    const response = await fetch(`${base}/api/classification/legacy`, { headers: headers() });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ id: 'legacy', userId: null });
+  });
+
+  it.each(['page=abc', 'page=0', 'page=-1', 'page=1.5', 'page=100001', 'scope=other', 'userId=other-user'])(
+    'rejects an invalid history query: %s', async query => {
+      const response = await fetch(`${base}/api/classification/history?${query}`, { headers: headers() });
+      expect(response.status).toBe(400);
+    },
+  );
 });
